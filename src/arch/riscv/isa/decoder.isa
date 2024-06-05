@@ -524,6 +524,106 @@ decode QUADRANT default Unknown::unknown() {
         }
     }
     0x3: decode OPCODE5 {
+        0x1d: decode FUNCT3 {
+            format ROp {
+                0x0: decode FUNCT7 {
+                    0x20: CDM8_41({{
+                        uint64_t result = 0;
+                        uint32_t a = Rs1;
+                        uint32_t b = Rs2;
+                            unsigned int binary_c[8] = {0}, binary_d[8] = {0};
+                            unsigned int pp0[8] = {0}, pp1[8] = {0}, pp2[8] = {0}, pp3[8] = {0};
+                            unsigned int clm[11] = {0}, cry[11] = {0}, bit[11] = {0};
+                            unsigned int resultA = 0, resultB = 0;
+
+                            // Convert integers to binary
+                            for (unsigned int i = 0; i < 7; i++) {
+                                binary_c[i] = a % 2;
+                                a = a / 2;
+                                if (i == 6) {
+                                    binary_c[7] = a;
+                                }
+                                binary_d[i] = b % 2;
+                                b = b / 2;
+                                if (i == 6) {
+                                    binary_d[7] = b;
+                                }
+                            }
+                            
+                            // Calculate pp0, pp1, pp2, pp3
+                            for (unsigned int i = 0; i < 8; i++) {
+                                pp0[i] = binary_c[i] * binary_d[0];
+                                pp1[i] = binary_c[i] * binary_d[1];
+                                pp2[i] = binary_c[i] * binary_d[2];
+                                pp3[i] = binary_c[i] * binary_d[3];
+                            }
+
+                            // Calculate clm
+                            clm[0]  = pp0[0];
+                            clm[1]  = pp0[1] + pp1[0];
+                            clm[2]  = pp0[2] + pp1[1] + pp2[0];
+                            clm[3]  = pp0[3] + pp1[2] + pp2[1] + pp3[0];
+                            clm[4]  = pp0[4] + pp1[3] + pp2[2] + pp3[1];
+                            clm[5]  = pp0[5] + pp1[4] + pp2[3] + pp3[2];
+                            clm[6]  = pp0[6] + pp1[5] + pp2[4] + pp3[3];
+                            clm[7]  = pp0[7] + pp1[6] + pp2[5] + pp3[4];
+                            clm[8]  =          pp1[7] + pp2[6] + pp3[5];
+                            clm[9]  =                   pp2[7] + pp3[6];
+                            clm[10] =                            pp3[7];
+
+                            // Calculate resultA
+                            for (unsigned int j = 0; j < 11; j++) {
+                                cry[j] = clm[j] / 2;
+                                bit[j] = clm[j] % 2;
+                                if (j <= 3) {
+                                    resultA += bit[j] * (1 << j);
+                                } else { 
+                                    resultA += bit[j] * (1 << j) + cry[j] * (1 << (j + 1));
+                                }
+                            }
+                            for (unsigned int i = 0; i < 8; i++) {
+                                pp0[i] = 0;
+                                pp1[i] = 0;
+                                pp2[i] = 0;
+                                pp3[i] = 0;
+                            }
+                            for (unsigned int i = 0; i < 11; i++) {
+                            clm[i] = 0;
+                            cry[i] = 0;
+                            bit[i] = 0;
+                            }
+                                // Calculate pp0, pp1, pp2, pp3
+                            for (unsigned int i = 0; i < 8; i++) {
+                                pp0[i] = binary_c[i] * binary_d[4];
+                                pp1[i] = binary_c[i] * binary_d[5];
+                                pp2[i] = binary_c[i] * binary_d[6];
+                                pp3[i] = binary_c[i] * binary_d[7];
+                            }
+                                // Calculate clm
+                            clm[0]  = pp0[0];
+                            clm[1]  = pp0[1] + pp1[0];
+                            clm[2]  = pp0[2] + pp1[1] + pp2[0];
+                            clm[3]  = pp0[3] + pp1[2] + pp2[1] + pp3[0];
+                            clm[4]  = pp0[4] + pp1[3] + pp2[2] + pp3[1];
+                            clm[5]  = pp0[5] + pp1[4] + pp2[3] + pp3[2];
+                            clm[6]  = pp0[6] + pp1[5] + pp2[4] + pp3[3];
+                            clm[7]  = pp0[7] + pp1[6] + pp2[5] + pp3[4];
+                            clm[8]  =          pp1[7] + pp2[6] + pp3[5];
+                            clm[9]  =                   pp2[7] + pp3[6];
+                            clm[10] =                            pp3[7];
+
+                            // Calculate resultB
+                            for (unsigned int j = 0; j < 1; j++) {
+                                cry[j] = clm[j] / 2;
+                                bit[j] = clm[j] % 2;
+                                resultB += bit[j] * (1 << j) + cry[j] * (1 << (j + 1));
+                            }
+                            result = resultA + resultB * 16;
+                        Rd = result;
+                    }});
+                }
+            }
+        }
         0x00: decode FUNCT3 {
             format Load {
                 0x0: lb({{
